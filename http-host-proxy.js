@@ -196,7 +196,7 @@ function onupgrade(req, socket, head) {
 }
 
 // new web request
-function onrequest(req, res, head) {
+function onrequest(req, res) {
   // log every request with relevant information
   accesslog(req, res, function(s) {
     var prefix;
