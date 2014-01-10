@@ -159,6 +159,9 @@ if (opts.ssl) {
 } else {
   server = http.createServer(onrequest);
 }
+//upgrade event for websockets
+server.on('upgrade', onupgrade);
+
 server.listen(opts.port, opts.host, listening);
 
 // create an authorization object if necessary
@@ -179,8 +182,21 @@ function listening() {
   }
 }
 
+function getproxy (req) {
+  var host = req.headers.host;
+  return proxies.hasOwnProperty(host) ? proxies[host] : null;
+}
+
+function onupgrade(req, socket, head) {
+  var p = getproxy(req);
+  if (p) {
+    return p.proxyWebSocketRequest(req, socket, head);
+  }
+  console.log('no proxy found for host %s for websocket upgrade', req.headers.host);
+}
+
 // new web request
-function onrequest(req, res) {
+function onrequest(req, res, head) {
   // log every request with relevant information
   accesslog(req, res, function(s) {
     var prefix;
@@ -197,7 +213,7 @@ function onrequest(req, res) {
   });
 
   var host = req.headers.host;
-  var p = proxies.hasOwnProperty(host) ? proxies[host] : null;
+  var p = getproxy(req);
   var credentials = getcredentials(req);
 
   // check auth first if applicable
